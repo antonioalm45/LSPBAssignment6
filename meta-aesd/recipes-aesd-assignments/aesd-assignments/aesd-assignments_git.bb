@@ -9,7 +9,7 @@ SRC_URI = "git://github.com/antonioalm45/LSPBAssignment3.git;protocol=https;bran
 
 PV = "1.0+git${SRCPV}"
 # TODO: set to reference a specific commit hash in your assignment repo
-SRCREV = "4d239f2163fbaf2cd3ec2a038296f90a1936239e"
+SRCREV = "5a05040cfa290fbf8b4fb3af690ee1bd216d7f3b"
 
 # This sets your staging directory based on WORKDIR, where WORKDIR is defined at 
 # https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-WORKDIR
@@ -19,8 +19,19 @@ S = "${WORKDIR}/git/server"
 
 # TODO: Add the aesdsocket application and any other files you need to install
 # See https://git.yoctoproject.org/poky/plain/meta/conf/bitbake.conf?h=kirkstone
-FILES:${PN} += "${bindir}/aesdsocket"
 TARGET_LDFLAGS += "-pthread -lrt"
+
+# Añade el script a la lista de archivos del paquete
+FILES:${PN} += "${bindir}/aesdsocket"
+FILES:${PN} += "${sysconfdir}/init.d/aesdsocket-start-stop"
+
+inherit update-rc.d
+
+INITSCRIPT_NAME = "aesdsocket-start-stop"
+INITSCRIPT_PARAMS = "defaults 99"
+
+FILES:${PN} += "${bindir}/aesdsocket"
+FILES:${PN} += "${sysconfdir}/init.d/${INITSCRIPT_NAME}"
 
 do_configure () {
 	:
@@ -31,17 +42,10 @@ do_compile () {
 }
 
 do_install () {
-	# TODO: Install your binaries/scripts here.
-	# Be sure to install the target directory with install -d first
-	# Yocto variables ${D} and ${S} are useful here, which you can read about at 
-	# https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-D
-	# and
-	# https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-S
-	# See example at https://github.com/cu-ecen-aeld/ecen5013-yocto/blob/ecen5013-hello-world/meta-ecen5013/recipes-ecen5013/ecen5013-hello-world/ecen5013-hello-world_git.bb
-	# 1. Crear el directorio de destino en la imagen final (${D}${bindir} suele ser /usr/bin)
 	install -d ${D}${bindir}
-
-	# 2. Instalar el binario aesdsocket con permisos de ejecución (0755)
-	# ${S} apunta a la carpeta 'server' donde se compiló el archivo
 	install -m 0755 ${S}/aesdsocket ${D}${bindir}/
+
+	install -d ${D}${sysconfdir}/init.d
+	# Instalamos el archivo .sh con el nombre que espera update-rc.d
+	install -m 0755 ${S}/aesdsocket-start-stop.sh ${D}${sysconfdir}/init.d/${INITSCRIPT_NAME}
 }
